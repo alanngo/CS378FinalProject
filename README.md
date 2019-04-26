@@ -1,6 +1,6 @@
 # CS378FinalProject
 
-k-means Clustering example: https://www.tensorflow.org/api_docs/python/tf/contrib/factorization/KMeansClustering
+k-means Clustering example: https://www.tensorflow.org/api_docs/python/tf/contrib/factorization/KMeansClustering, https://github.com/aymericdamien/TensorFlow-Examples/blob/master/examples/2_BasicModels/kmeans.py
 
 Link to Noob's guide: http://monik.in/a-noobs-guide-to-implementing-rnn-lstm-using-tensorflow/
 
