@@ -7,130 +7,157 @@ from collections import Counter
 from tensorflow.contrib import rnn
 from tensorflow.examples.tutorials.mnist import input_data
 
-mnist = input_data.read_data_sets("/tmp/data/", one_hot=True)
+#mnist = input_data.read_data_sets("/tmp/data/", one_hot=True)
 # read file
 print("This is the name of the script: ", sys.argv[0])
 print("Number of arguments: ", len(sys.argv))
 print("The arguments are: " , str(sys.argv))
 trace_file = open(sys.argv[1], 'r')
 
-inputs = []
-outputs = []
+PCs = []
+deltas = []
 i = 0
 
 
 for line in trace_file:
 	ig1, PC, data_address, ig2, ig3, ig4 = line.split(" ")
-	nested_array = []
-	nested_array.append(float.fromhex(PC))
-	nested_2_array = []
-	nested_2_array.append(nested_array)
-	inputs.append(nested_2_array)
-	if (len(outputs) == 0):
-		outputs.append(0)
+	PCs.append(float.fromhex(PC))
+	if (len(deltas) == 0):
+		deltas.append(0)
 	else :
-		outputs.append(float(inputs[-1][0][0]-inputs[-2][0][0]))
+		deltas.append(int(PCs[-1]-PCs[-2]))
 DEBUG = True
 
+#Remove all deltas with less than 10
+# count_deltas = Counter(deltas)
 
-count_out = Counter(outputs)
-count_out_arr = [(k , v) for k , v in count_out.items()]
-count_out_val = count_out.values
+# #iterate through [deltas], if entry in the count_deltas dictonary has less 
 
-while len(count_out_arr) > 50000:
-	for i in range(len(count_out_arr)):
-		if count_array_arr[i][1] == min(count_out.values()) and len(count_out_arr) > 50000 :
-			del count_array_arr[i]
-	count_out_val.remove(min(count_out_val))
+# a dictonary of Counter(deltas);
+# Most common 50k deltas (MCDA)
+# iterate through all deltas
+#	if the delta occurs more than 10 times according to the dictonary
+#		iterate through the MCDA, 	
+#			if delta[i] = MCDA[x], put a 1, otherwise put a 0
+#			add pc, delta to a new array for PC encoding.
+#
 
 
-for i in range(len(count_out_arr)):
-	count_out_arr[i] = [(count_out_arr[i][0])]
+delta_counter = Counter(deltas)
+delta_dictonary = dict(delta_counter) #formatting
+most_common_deltas = delta_counter.most_common(50000)
+most_common_deltas_array = [k for k , _ in most_common_deltas] #formatting
 
-'''
-if(DEBUG):
-	print(inputs)
-	print(count_out_arr)
-'''
-print(mnist)
-#define constants
-#unrolled through 28 time steps
-time_steps=28
-#hidden LSTM units
-num_units=128
-#rows of 28 pixels
-n_input=28
-#learning rate for adam
-learning_rate=0.001
-#mnist is meant to be classified in 10 classes(0-9).
-n_classes=10
-#size of batch
-batch_size=128
+deltas_one_hot = []
+pc_delta = []
 
-#weights and biases of appropriate shape to accomplish above task
-out_weights=tf.Variable(tf.random_normal([num_units,n_classes]))
-out_bias=tf.Variable(tf.random_normal([n_classes]))
 
-#defining placeholders
-#input image placeholder
-x=tf.placeholder("float",[None,time_steps,n_input])
-#input label placeholder
-y=tf.placeholder("float",[None,n_classes])
+for d in deltas:
+	if delta_dictonary[d] >= 10:
+		temp = []
+		for mcda_pos in most_common_deltas_array:
+			if d == mcda_pos :
+				temp.append(1)
+			else:
+				temp.append(0)
+		deltas_one_hot.append(temp)
 
-#processing the input tensor from [batch_size,n_steps,n_input] to "time_steps" number of [batch_size,n_input] tensors
-input=tf.unstack(x ,time_steps,1)
+print(most_common_deltas_array)
+for i in deltas_one_hot:
+	print(i)
+##TODO##
+# -change the 'for d in deltas' to an index
+# -after appending temp, create an entry in pc_delta with deltas[d] and pc[d]
+# -figure out encoding
+# -figure out appending
+# -figure out LSTM machine
 
-#defining the network
-lstm_layer=rnn.BasicLSTMCell(num_units,forget_bias=1)
-outputs,_=rnn.static_rnn(lstm_layer,input,dtype="float32")
 
-#converting last output of dimension [batch_size,num_units] to [batch_size,n_classes] by out_weight multiplication
-prediction=tf.matmul(outputs[-1],out_weights)+out_bias
 
-#loss_function
-loss=tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=prediction,labels=y))
-#optimization
-opt=tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(loss)
+# '''
+# if(DEBUG):
+# 	print(inputs)
+# 	print(count_out_arr)
+# '''
+# print(mnist)
+# #define constants
+# #unrolled through 28 time steps
+# time_steps=28			#how many previous addresses
+# #hidden LSTM units
+# num_units=128
+# #rows of 28 pixels
+# n_input=28
+# #learning rate for adam
+# learning_rate=0.001
+# #mnist is meant to be classified in 10 classes(0-9).
+# n_classes=10
+# #size of batch
+# batch_size=128
 
-#model evaluation
-correct_prediction=tf.equal(tf.argmax(prediction,1),tf.argmax(y,1))
-accuracy=tf.reduce_mean(tf.cast(correct_prediction,tf.float32))
+# #weights and biases of appropriate shape to accomplish above task
+# out_weights=tf.Variable(tf.random_normal([num_units,n_classes]))
+# out_bias=tf.Variable(tf.random_normal([n_classes]))
 
-#initialize variables
-init=tf.global_variables_initializer()
-with tf.Session() as sess:
-    sess.run(init)
-    iter=1
-    while iter<790:
-        batch_x,batch_y=mnist.train.next_batch(batch_size=batch_size) #change variable
+# #defining placeholders
+# #input image placeholder
+# x=tf.placeholder("float",[None,time_steps,n_input])
+# #input label placeholder
+# y=tf.placeholder("float",[None,n_classes])
 
-        batch_x=batch_x.reshape((batch_size,time_steps,n_input))
+# #processing the input tensor from [batch_size,n_steps,n_input] to "time_steps" number of [batch_size,n_input] tensors
+# input=tf.unstack(x ,time_steps,1)
 
-        sess.run(opt, feed_dict={x: batch_x, y: batch_y})
+# #defining the network
+# lstm_layer=rnn.BasicLSTMCell(num_units,forget_bias=1)
+# outputs,_=rnn.static_rnn(lstm_layer,input,dtype="float32")
 
-        if iter %10==0:
-            acc=sess.run(accuracy,feed_dict={x:batch_x,y:batch_y})
-            los=sess.run(loss,feed_dict={x:batch_x,y:batch_y})
-            print("For iter ",iter)
-            print("Accuracy ",acc)
-            print("Loss ",los)
-            print("__________________")
+# #converting last output of dimension [batch_size,num_units] to [batch_size,n_classes] by out_weight multiplication
+# prediction=tf.matmul(outputs[-1],out_weights)+out_bias
 
-        iter=iter+1
+# #loss_function
+# loss=tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=prediction,labels=y))
+# #optimization
+# opt=tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(loss)
 
-    #calculating test accuracy 
-    test_data = mnist.test.images[:128].reshape((-1, time_steps, n_input)) #change variable
-    test_label = mnist.test.labels[:128] #change variable
-    print("Testing Accuracy:", sess.run(accuracy, feed_dict={x: test_data, y: test_label}))
-'''
-NUM_EXAMPLES = len(count_out_arr) / 2
-get test_input and test_output
-algorithm 0...NUM_EXAMPLES
-get train_input and train_output
-algorithm NUM_EXAMPLES...len(count_out_arr) / 2
+# #model evaluation
+# correct_prediction=tf.equal(tf.argmax(prediction,1),tf.argmax(y,1))
+# accuracy=tf.reduce_mean(tf.cast(correct_prediction,tf.float32))
 
-algorithm: 
-iterate through each entry
-first sub-entry of entry goes into input
-second sub-entry of entry goes into output
-'''
+# #initialize variables
+# init=tf.global_variables_initializer()
+# with tf.Session() as sess:
+#     sess.run(init)
+#     iter=1
+#     while iter<790:
+#         batch_x,batch_y=mnist.train.next_batch(batch_size=batch_size) #change variable
+
+#         batch_x=batch_x.reshape((batch_size,time_steps,n_input))
+
+#         sess.run(opt, feed_dict={x: batch_x, y: batch_y})
+
+#         if iter %10==0:
+#             acc=sess.run(accuracy,feed_dict={x:batch_x,y:batch_y})
+#             los=sess.run(loss,feed_dict={x:batch_x,y:batch_y})
+#             print("For iter ",iter)
+#             print("Accuracy ",acc)
+#             print("Loss ",los)
+#             print("__________________")
+
+#         iter=iter+1
+
+#     #calculating test accuracy 
+#     test_data = mnist.test.images[:128].reshape((-1, time_steps, n_input)) #change variable
+#     test_label = mnist.test.labels[:128] #change variable
+#     print("Testing Accuracy:", sess.run(accuracy, feed_dict={x: test_data, y: test_label}))
+# '''
+# NUM_EXAMPLES = len(count_out_arr) / 2
+# get test_input and test_output
+# algorithm 0...NUM_EXAMPLES
+# get train_input and train_output
+# algorithm NUM_EXAMPLES...len(count_out_arr) / 2
+
+# algorithm: 
+# iterate through each entry
+# first sub-entry of entry goes into input
+# second sub-entry of entry goes into output
+# '''
