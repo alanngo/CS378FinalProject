@@ -93,9 +93,14 @@ if(DEBUG and DB_ONE_HOT):
 		print(i)
 	print(len(pc_one_hot) ==len(deltas_one_hot))
 
+concat = []
 
-#
+for d in range(len(deltas_one_hot)):
+	concat.append(deltas_one_hot[d] + pc_one_hot[d])
 
+print(len(deltas_one_hot[0]))
+print(len(pc_one_hot[0]))
+print(len(concat[0]))
 
 ##TODO##
 # DONE-change the 'for d in deltas' to an index
