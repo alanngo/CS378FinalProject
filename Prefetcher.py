@@ -27,6 +27,7 @@ for line in trace_file:
 	else :
 		deltas.append(int(PCs[-1]-PCs[-2]))
 DEBUG = True
+DB_ONE_HOT = False
 
 #Remove all deltas with less than 10
 # count_deltas = Counter(deltas)
@@ -52,22 +53,53 @@ deltas_one_hot = []
 pc_delta = []
 
 
-for d in deltas:
-	if delta_dictonary[d] >= 10:
+for d in range(len(deltas)):
+	if delta_dictonary[deltas[d]] >= 10:
 		temp = []
 		for mcda_pos in most_common_deltas_array:
-			if d == mcda_pos :
+			if deltas[d] == mcda_pos :
 				temp.append(1)
 			else:
 				temp.append(0)
 		deltas_one_hot.append(temp)
+		pc_delta.append((deltas[d], PCs[d]))
 
-print(most_common_deltas_array)
-for i in deltas_one_hot:
-	print(i)
+
+
+
+used_pc = [k for _ , k in pc_delta] #formatting
+pc_counter = Counter(used_pc)
+pc_dictonary = dict(pc_counter) #formatting
+pc_array = [k for k in pc_dictonary.keys()] #formatting
+
+pc_one_hot = []
+
+
+for _ , pc in pc_delta:
+		temp = []
+		for pc_pos in pc_array:
+			if pc == pc_pos :
+				temp.append(1)
+			else:
+				temp.append(0)
+		pc_one_hot.append(temp)
+
+if(DEBUG and DB_ONE_HOT):
+	print(pc_array)
+	for i in pc_one_hot:
+		print(i)
+	print(most_common_deltas_array)
+	for i in deltas_one_hot:
+		print(i)
+	print(len(pc_one_hot) ==len(deltas_one_hot))
+
+
+#
+
+
 ##TODO##
-# -change the 'for d in deltas' to an index
-# -after appending temp, create an entry in pc_delta with deltas[d] and pc[d]
+# DONE-change the 'for d in deltas' to an index
+# DONE-after appending temp, create an entry in pc_delta with deltas[d] and pc[d]
 # -figure out encoding
 # -figure out appending
 # -figure out LSTM machine
