@@ -104,6 +104,21 @@ if(DEBUG and DB_ONE_HOT):
 # -figure out appending
 # -figure out LSTM machine
 
+###Training hyperparameters for each model.###
+#EMBEDDING 					
+#Network Size 				128x2 LSTM
+#Learning Rate 				.001
+#Number of Train Steps 		500k
+#Sequence Length 			64	
+#Embedding size 			128
+
+#CLUSTERING
+#Network Size 				128x2 LSTM	
+#Learning Rate 				.1
+#Number of Train Steps 		250k
+#Sequence Length 			64
+#Number of Centroids		12
+
 
 
 # '''
