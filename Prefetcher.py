@@ -16,16 +16,18 @@ trace_file = open(sys.argv[1], 'r')
 
 PCs = []
 deltas = []
+addr = []
 i = 0
 
 
 for line in trace_file:
 	ig1, PC, data_address, ig2, ig3, ig4 = line.split(" ")
 	PCs.append(float.fromhex(PC))
+	addr.append(float.fromhex(data_address))
 	if (len(deltas) == 0):
 		deltas.append(0)
 	else :
-		deltas.append(int(PCs[-1]-PCs[-2]))
+		deltas.append(int(addr[-1]-addr[-2]))
 DEBUG = True
 DB_ONE_HOT = False
 
@@ -56,11 +58,14 @@ pc_delta = []
 for d in range(len(deltas)):
 	if delta_dictonary[deltas[d]] >= 10:
 		temp = []
-		for mcda_pos in most_common_deltas_array:
+		for mcda_pos in most_common_deltas_array: # add a truth variable that is set to false when a bit is found
 			if deltas[d] == mcda_pos :
 				temp.append(1)
 			else:
 				temp.append(0)
+		#right before we append temp, chek the truth value. 
+		#Add 1 if still true (Signfies an outside value)
+		#add 0 if false
 		deltas_one_hot.append(temp)
 		pc_delta.append((deltas[d], PCs[d]))
 
@@ -103,9 +108,12 @@ print(len(pc_one_hot[0]))
 print(len(concat[0]))
 
 
-concat_test , concat_train = np.array_split(ary = concat, indices_or_sections = 2)
+# concat_test , concat_train = np.array_split(ary = concat, indices_or_sections = 2)
 
-delta_test, delta_train = np.array_split([k for k, _ in pc_delta], indices_or_sections = 2)
+delta_test, delta_train = np.array_split(deltas_one_hot, indices_or_sections = 2)
+pc_test, pc_train = np.array_split(pc_one_hot, indices_or_sections = 2)
+y_out = most_common_deltas_array
+
 
 
 ##TODO##
@@ -130,7 +138,11 @@ delta_test, delta_train = np.array_split([k for k, _ in pc_delta], indices_or_se
 #Sequence Length 			64
 #Number of Centroids		12
 
+##EMBEDDING##
 
+# t1 = [[1, 2, 3], [4, 5, 6]]
+# t2 = [[7, 8, 9], [10, 11, 12]]
+# tf.concat([t1, t2], 1)  # [[1, 2, 3, 7, 8, 9], [4, 5, 6, 10, 11, 12]]
 
 # # '''
 # # if(DEBUG):
@@ -150,11 +162,30 @@ learning_rate=0.001
 #mnist is meant to be classified in 10 classes(0-9).
 n_classes=50000
 #size of batch
-batch_size=len(concat_test)
+batch_size=128
 
 #weights and biases of appropriate shape to accomplish above task
 out_weights=tf.Variable(tf.random_normal([num_units,n_classes]))
 out_bias=tf.Variable(tf.random_normal([n_classes]))
+
+
+np_delta = tf.placeholder("float",[None,time_steps,n_input])
+delta_embeddings = tf.Variable(tf.random_normal([num_units,n_classes]))
+embedded_deltas = tf.nn.embedding_lookup(delta_embeddings, np_delta)
+
+np_pcs = tf.placeholder("float",[None,time_steps,n_input])
+pc_embeddings = tf.Variable(tf.random_normal([num_units,n_classes]))
+embedded_pcs = tf.nn.embedding_lookup(pc_embeddings, np_pcs)
+
+embedded_concat = tf.concat([embedded_pcs, embedded_deltas], 1)  # [[1, 2, 3, 7, 8, 9], [4, 5, 6, 10, 11, 12]]
+
+
+
+y = tf.placeholder("float",[None,n_classes])
+
+print("done did delats")
+
+
 
 #defining placeholders
 #input image placeholder
@@ -187,7 +218,7 @@ with tf.Session() as sess:
     sess.run(init)
     iter=1
     while iter<2:
-        batch_x =  concat_test
+        batch_x =  embedded_concat
         batch_y = delta_test    #change variable
 
         batch_x=batch_x.reshape((batch_size,time_steps,n_input))
@@ -205,18 +236,18 @@ with tf.Session() as sess:
         iter=iter+1
 
     #calculating test accuracy 
-    # test_data = mnist.test.images[:128].reshape((-1, time_steps, n_input)) #change variable
-    # test_label = mnist.test.labels[:128] #change variable
-    # print("Testing Accuracy:", sess.run(accuracy, feed_dict={x: test_data, y: test_label}))
-# '''
-# NUM_EXAMPLES = len(count_out_arr) / 2
-# get test_input and test_output
-# algorithm 0...NUM_EXAMPLES
-# get train_input and train_output
-# algorithm NUM_EXAMPLES...len(count_out_arr) / 2
+    test_data = mnist.test.images[:128].reshape((-1, time_steps, n_input)) #change variable
+    test_label = mnist.test.labels[:128] #change variable
+    print("Testing Accuracy:", sess.run(accuracy, feed_dict={x: test_data, y: test_label}))
+'''
+NUM_EXAMPLES = len(count_out_arr) / 2
+get test_input and test_output
+algorithm 0...NUM_EXAMPLES
+get train_input and train_output
+algorithm NUM_EXAMPLES...len(count_out_arr) / 2
 
-# algorithm: 
-# iterate through each entry
-# first sub-entry of entry goes into input
-# second sub-entry of entry goes into output
-# '''
+algorithm: 
+iterate through each entry
+first sub-entry of entry goes into input
+second sub-entry of entry goes into output
+'''
