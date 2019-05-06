@@ -22,7 +22,7 @@ i = 0
 
 for line in trace_file:
 	ig1, PC, data_address, ig2, ig3, ig4 = line.split(" ")
-	print(PC)
+	#print(PC)
 	PCs.append(float.fromhex(PC[-6:]))
 	addr.append(float.fromhex(data_address[-6:]))
 	#print(float.fromhex(data_address))
@@ -44,7 +44,7 @@ DB_ONE_HOT = False
 #	if the delta occurs more than 10 times according to the dictonary
 #		iterate through the MCDA, 	
 #			if delta[i] = MCDA[x], put a 1, otherwise put a 0
-#			add pc, delta to a new array for PC encoding.
+#			add pc, delta to a new array for PC encodin g.
 #
 
 
@@ -66,7 +66,7 @@ pc_delta = []
 deltas_seq =[]
 pc_seq = []
 
-print(delta_counter)
+# print(delta_counter)
 for d in range(len(deltas)):
 	if delta_dictonary[deltas[d]] >= 1:
 		temp = len(most_common_deltas_array)
@@ -118,7 +118,7 @@ for _ , delt in pc_delta:
 			deltas_seq.append(d_one_hot[-1-64:-1])
 
 
-print(pc_seq)
+# print(pc_seq)
 
 
 if(DEBUG and DB_ONE_HOT):
@@ -130,8 +130,8 @@ if(DEBUG and DB_ONE_HOT):
 		print(i)
 	print(len(pc_one_hot) ==len(deltas_one_hot))
 
-print(len(d_one_hot))
-print(len(pc_one_hot))
+#print(len(d_one_hot))
+#print(len(pc_one_hot))
 
 
 
@@ -188,13 +188,13 @@ time_steps=64			#how many previous addresses
 #hidden LSTM units
 num_units=128
 #rows of 28 pixels
-n_input=len(d_one_hot)				##?
+n_input=	len(d_one_hot)				##?
 #learning rate for adam
 learning_rate=0.001
 #mnist is meant to be classified in 10 classes(0-9).
 n_classes=50000
 #size of batch
-batch_size=128
+batch_size=64
 
 #weights and biases of appropriate shape to accomplish above task
 out_weights=tf.Variable(tf.random_normal([num_units,n_classes]))
@@ -202,22 +202,24 @@ out_bias=tf.Variable(tf.random_normal([n_classes]))
 
 #batch size, time_steps
 np_delta = tf.placeholder(tf.int32,[batch_size,time_steps])
-delta_embeddings = tf.Variable(tf.random_normal([num_units,n_classes]))
+delta_embeddings = tf.Variable(tf.random_normal([time_steps,n_classes]))
 embedded_deltas = tf.nn.embedding_lookup(delta_embeddings, np_delta)
 
 np_pcs = tf.placeholder(tf.int32,[batch_size,time_steps])
-pc_embeddings = tf.Variable(tf.random_normal([num_units,n_classes]))
+pc_embeddings = tf.Variable(tf.random_normal([time_steps,n_classes]))
 embedded_pcs = tf.nn.embedding_lookup(pc_embeddings, np_pcs)
 
-embedded_concat = tf.concat([embedded_pcs, embedded_deltas], 1)  # [[1, 2, 3, 7, 8, 9], [4, 5, 6, 10, 11, 12]]
+embedded_concat = tf.concat([embedded_pcs, embedded_deltas], 2)  # [[1, 2, 3, 7, 8, 9], [4, 5, 6, 10, 11, 12]]
 
 
-
-y = tf.placeholder("float",[None,n_classes])
+y = tf.placeholder(tf.int32,[batch_size,n_classes])
 
 print("done did delats")
 
-
+#print shape of the tensor: tf.shape()
+#embedding: take a large feature, reduce it's dimensionality.
+#	-creates a mapping to a smaller vector
+#Predicts a one-hot
 
 #defining placeholders
 #input image placeholder
@@ -229,8 +231,8 @@ print("done did delats")
 input=tf.unstack(embedded_concat,time_steps,1)
 
 #defining the network
-lstm_layer=rnn.BasicLSTMCell(num_units,forget_bias=1)
-outputs,_=rnn.static_rnn(lstm_layer,embedded_concat,dtype="float32")
+lstm_layer=rnn.BasicLSTMCell(num_units,forget_bias=1) 	#really slow, can use gpus
+outputs,_=rnn.static_rnn(lstm_layer,input,dtype="float32")
 
 #converting last output of dimension [batch_size,num_units] to [batch_size,n_classes] by out_weight multiplication
 prediction=tf.matmul(outputs[-1],out_weights)+out_bias
