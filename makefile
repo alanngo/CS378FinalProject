@@ -6,3 +6,6 @@ tasks:
 
 debug:
 	./run_debug.sh Prefetcher.py
+
+pipe:
+	./run_debug.sh Prefetcher.py > output.out
