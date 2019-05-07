@@ -8,4 +8,4 @@ debug:
 	./run_debug.sh Prefetcher.py
 
 pipe:
-	./run_debug.sh Prefetcher.py > output.out
+	./run_debug.sh Prefetcher.py > output.out 

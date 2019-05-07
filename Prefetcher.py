@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import random
 from random import shuffle
@@ -5,7 +6,15 @@ import tensorflow as tf
 import sys
 from collections import Counter
 from tensorflow.contrib import rnn
-from tensorflow.examples.tutorials.mnist import input_data
+
+#tsne?
+from tensorflow.contrib.tensorboard.plugins import projector
+from sklearn.manifold import TSNE
+import matplotlib.pyplot as plt
+from sklearn import preprocessing
+
+
+
 #Tags:
 #	DEBUG
 #	TODO
@@ -35,12 +44,15 @@ for line in trace_file:
 	addr.append(float.fromhex(data_address[-6:]))
 	if (len(deltas) == 0):
 		deltas.append(0)
+#		next_delta.append(0)
 	else :
 		deltas.append(int(addr[-1]-addr[-2]))
 		next_delta.append(deltas[-1])
+
 next_delta.append(0)
 
-
+print(deltas[:5])
+print(next_delta[:5])
 
 
 #O-H Variables
@@ -233,7 +245,10 @@ accuracy=tf.reduce_mean(tf.cast(correct_prediction,tf.float32))
 
 
 #initialize variables
+
 init=tf.global_variables_initializer()
+
+vectors = []
 
 iterations = len(delta_train)/batch_size
 with tf.Session() as sess:
@@ -264,3 +279,17 @@ with tf.Session() as sess:
     test_next_delta = y_test[:batch_size]
     fd = {np_delta:test_delta, np_pcs:test_pc, y:test_next_delta}
     print("Testing Accuracy:", sess.run(accuracy, feed_dict=fd))
+    print(sess.run(out_weights + out_bias).shape)
+    vectors = sess.run(out_weights + out_bias)
+
+
+
+model = TSNE(n_components=2, random_state=0)
+vectors = model.fit_transform(vectors)
+normalizer = preprocessing.Normalizer()
+vectors =  normalizer.fit_transform(vectors, 'l2')
+fig, ax = plt.subplots()
+for out_delta in next_delta:
+    print(out_delta, vectors[next_delta_oh_encode[out_delta]][1])
+    ax.annotate(out_delta, (vectors[next_delta_oh_encode[out_delta]][0],vectors[next_delta_oh_encode[out_delta]][1] ))
+plt.show()
