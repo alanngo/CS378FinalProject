@@ -20,6 +20,9 @@ addr = []
 next_delta = []
 i = 0
 
+##TODO: move this? probably?
+time_steps=64			#how many previous addresses
+
 
 for line in trace_file:
 	ig1, PC, data_address, ig2, ig3, ig4 = line.split(" ")
@@ -31,10 +34,10 @@ for line in trace_file:
 		deltas.append(0)
 	else :
 		deltas.append(int(addr[-1]-addr[-2]))
+		next_delta.append(deltas[-1])
 DEBUG = True
 DB_ONE_HOT = False
 
-next_delta = deltas.copy()
 next_delta.insert(0, 0)
 
 
@@ -54,6 +57,7 @@ delta_frequency_counter = Counter(deltas) 				#used for Next Delta
 delta_frequency_dictonary = dict(Counter(deltas)) 
 
 #Reducing the input vocab to only those with 10 or more occurances. Enumerates them for easy one-hot encoding.
+#TODO: change to only allow occurances with more than 10.
 deltas_oh_encode = dict()
 for counter,value in enumerate(i for i in delta_frequency_dictonary.keys() if delta_frequency_dictonary[i] >= 2):
 	deltas_oh_encode[value] = counter
@@ -87,11 +91,13 @@ for counter,value in enumerate(i for i in next_delta_frequency_dictonary.keys())
 
 ##next_delta POH encoding
 for i in next_delta:
+	temp = np.zeros(len(next_delta_oh_encode))
 	if i in next_delta_oh_encode:
-		next_delta_one_hot.append(next_delta_oh_encode[i])
+		temp[next_delta_oh_encode[i]] = 1
+		next_delta_one_hot.append(temp)
 	else:
-		next_delta_one_hot.append(len(next_delta_oh_encode))
-
+		temp[next_delta_oh_encode[len(next_delta_oh_encode)]] = 1
+		next_delta_one_hot.append(temp)
 assert(len(pc_one_hot) == len(delta_one_hot))
 
 
@@ -99,20 +105,17 @@ assert(len(pc_one_hot) == len(delta_one_hot))
 
 ##sequencing
 for i in range(len(pc_one_hot)):
-	if i > 64:
-		pc_seq.append(pc_one_hot[i-64:i])
-		delta_seq.append(delta_one_hot[i-64:i])
-		temp = []
-		temp.append(next_delta_one_hot[i+1])
-		next_delta_format.append(temp)
+	if i > time_steps:
+		pc_seq.append(pc_one_hot[i-time_steps:i])
+		delta_seq.append(delta_one_hot[i-time_steps:i])
 
 delta_train, delta_test = np.array_split(delta_seq, indices_or_sections = 2)
 pc_train, pc_test = np.array_split(pc_seq, indices_or_sections = 2)
-y_train, y_test = np.array_split(next_delta_format, indices_or_sections = 2)
+y_train, y_test = np.array_split(next_delta_one_hot[time_steps:], indices_or_sections = 2)
 
-print(delta_train)
-print(pc_train)
-print(y_train)
+print(len(delta_train))
+print(len(pc_train))
+print(len(y_train))
 
 
 
@@ -162,7 +165,7 @@ n_input= 64				##?
 #learning rate for adam
 learning_rate=0.001
 #mnist is meant to be classified in 10 classes(0-9).
-n_classes=50000
+n_classes = len(next_delta_oh_encode) #TODO: modify to allow for less than 50k classes
 #size of batch
 batch_size=64
 #defined in the paper
@@ -191,13 +194,8 @@ embedded_concat = tf.concat([embedded_pcs, embedded_deltas], 2)  # uhhhh.... sti
 
 print(embedded_concat.get_shape()) # return (64, 128, 50000)
 
-print("y values:")
-y = tf.placeholder(tf.int32,[batch_size,1])
-y_oh = tf.one_hot(y, n_classes)
-y_val = tf.reshape( y_oh, (-1, n_classes))
-print(y.get_shape()) # returns (64, 50000)
-
-print("!!!!!!!!!done did delats!!!!!!!!!!!")
+y = tf.placeholder(tf.int32,[batch_size,n_classes])
+print(y.get_shape()) 
 
 #print shape of the tensor: tf.shape()
 #embedding: take a large feature, reduce it's dimensionality.
@@ -220,7 +218,7 @@ print("***prediction***")
 print(prediction.get_shape())
 
 #loss_function
-loss=tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=prediction,labels=y_val))
+loss=tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=prediction,labels=y))
 #optimization
 opt=tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(loss)
 
@@ -228,21 +226,23 @@ opt=tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(loss)
 correct_prediction=tf.equal(tf.argmax(prediction,1),tf.argmax(y,1))
 accuracy=tf.reduce_mean(tf.cast(correct_prediction,tf.float32))
 
+
+iterations = len(delta_train)/batch_size
 #initialize variables
 init=tf.global_variables_initializer()
 with tf.Session() as sess:
     sess.run(init)
     iter=1
-    while iter<2:
-        batch_delta = delta_train[(iter-1)*64:iter*64]
-        batch_pc = pc_train[(iter-1)*64:iter*64]
-        batch_next_delta = y_train[(iter-1)*64:iter*64]
+    while iter<iterations:
+        batch_delta = delta_train[(iter-1)*batch_size:iter*batch_size]
+        batch_pc = pc_train[(iter-1)*batch_size:iter*batch_size]
+        batch_next_delta = y_train[(iter-1)*batch_size:iter*batch_size]
 
         #batch_x=batch_x.reshape((batch_size,time_steps,n_input))
         fd = {np_delta:batch_delta, np_pcs:batch_pc, y:batch_next_delta}
         sess.run(opt, feed_dict=fd)
 
-        if iter%1 == 0:
+        if iter%10 == 0:
             acc=sess.run(accuracy,feed_dict=fd)
             los=sess.run(loss,feed_dict=fd)
             print("For iter ",iter)
@@ -253,9 +253,12 @@ with tf.Session() as sess:
         iter=iter+1
 
     # #calculating test accuracy 
-    # test_data = mnist.test.images[:128].reshape((-1, time_steps, n_input)) #change variable
-    # test_label = mnist.test.labels[:128] #change variable
-    # print("Testing Accuracy:", sess.run(accuracy, feed_dict={x: test_data, y: test_label}))
+    test_delta = delta_test[:batch_size]
+    test_pc = pc_test[:batch_size]
+    test_next_delta = y_test[:batch_size]
+    fd = {np_delta:test_delta, np_pcs:test_pc, y:test_next_delta}
+
+    print("Testing Accuracy:", sess.run(accuracy, feed_dict=fd))
 '''
 NUM_EXAMPLES = len(count_out_arr) / 2
 get test_input and test_output
