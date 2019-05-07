@@ -111,7 +111,7 @@ d_one_hot = []
 for _ , delt in pc_delta:
 		temp = len(d_array)
 		for d_pos in range(len(d_array)):
-			if d == d_array[d_pos] :
+			if delt == d_array[d_pos] :
 				temp = d_pos
 		d_one_hot.append(temp)
 		if len(d_one_hot) > 64:
@@ -188,7 +188,7 @@ time_steps=64			#how many previous addresses
 #hidden LSTM units
 num_units=128
 #rows of 28 pixels
-n_input=	len(d_one_hot)				##?
+n_input= 128				##?
 #learning rate for adam
 learning_rate=0.001
 #mnist is meant to be classified in 10 classes(0-9).
@@ -209,12 +209,17 @@ np_pcs = tf.placeholder(tf.int32,[batch_size,time_steps])
 pc_embeddings = tf.Variable(tf.random_normal([time_steps,n_classes]))
 embedded_pcs = tf.nn.embedding_lookup(pc_embeddings, np_pcs)
 
-embedded_concat = tf.concat([embedded_pcs, embedded_deltas], 2)  # [[1, 2, 3, 7, 8, 9], [4, 5, 6, 10, 11, 12]]
 
 
-y = tf.placeholder(tf.int32,[batch_size,n_classes])
+embedded_concat = tf.concat([embedded_pcs, embedded_deltas], 1)  # [[1, 2, 3, 7, 8, 9], [4, 5, 6, 10, 11, 12]]
 
-print("done did delats")
+print(embedded_concat.get_shape()) # return (64, 128, 50000)
+
+y = tf.placeholder(tf.int32,[n_input,n_classes])
+
+print(y.get_shape()) # returns (64, 50000)
+
+print("!!!!!!!!!done did delats!!!!!!!!!!!")
 
 #print shape of the tensor: tf.shape()
 #embedding: take a large feature, reduce it's dimensionality.
@@ -228,7 +233,9 @@ print("done did delats")
 #y=tf.placeholder("float",[None,n_classes])
 
 #processing the input tensor from [batch_size,n_steps,n_input] to "time_steps" number of [batch_size,n_input] tensors
-input=tf.unstack(embedded_concat,time_steps,1)
+input=tf.unstack(embedded_concat,time_steps,0)
+
+
 
 #defining the network
 lstm_layer=rnn.BasicLSTMCell(num_units,forget_bias=1) 	#really slow, can use gpus
@@ -236,6 +243,9 @@ outputs,_=rnn.static_rnn(lstm_layer,input,dtype="float32")
 
 #converting last output of dimension [batch_size,num_units] to [batch_size,n_classes] by out_weight multiplication
 prediction=tf.matmul(outputs[-1],out_weights)+out_bias
+
+print("***prediction***")
+print(prediction.get_shape())
 
 #loss_function
 loss=tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=prediction,labels=y))
@@ -255,7 +265,7 @@ with tf.Session() as sess:
         batch_x =  embedded_concat
         batch_y = delta_test    #change variable
 
-        batch_x=batch_x.reshape((batch_size,time_steps,n_input))
+        #batch_x=batch_x.reshape((batch_size,time_steps,n_input))
 
         sess.run(opt, feed_dict={x: batch_x, y: batch_y})
 

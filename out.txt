@@ -1,0 +1,8 @@
+./run_debug.sh Prefetcher.py
+Running Prefetcher.py on astar_163B ...
+This is the name of the script:  Prefetcher.py
+Number of arguments:  2
+The arguments are:  ['Prefetcher.py', 'astar.benchmark']
+(64, 64, 100000)
+(64, 50000)
+!!!!!!!!!done did delats!!!!!!!!!!!
