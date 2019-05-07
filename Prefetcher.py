@@ -6,58 +6,58 @@ import sys
 from collections import Counter
 from tensorflow.contrib import rnn
 from tensorflow.examples.tutorials.mnist import input_data
+#Tags:
+#	DEBUG
+#	TODO
 
-#mnist = input_data.read_data_sets("/tmp/data/", one_hot=True)
-# read file
+
+
+# File Input
 print("This is the name of the script: ", sys.argv[0])
 print("Number of arguments: ", len(sys.argv))
 print("The arguments are: " , str(sys.argv))
 trace_file = open(sys.argv[1], 'r')
 
+#Raw Input Arrays. May need to optimize for space?
 PCs = []
 deltas = []
 addr = []
 next_delta = []
 i = 0
 
-##TODO: move this? probably?
+##TODO: Figure out where we want to declasre our main variables
 time_steps=64			#how many previous addresses
 
 
 for line in trace_file:
 	ig1, PC, data_address, ig2, ig3, ig4 = line.split(" ")
-	#print(PC)
 	PCs.append(float.fromhex(PC[-6:]))
 	addr.append(float.fromhex(data_address[-6:]))
-	#print(float.fromhex(data_address))
 	if (len(deltas) == 0):
 		deltas.append(0)
 	else :
 		deltas.append(int(addr[-1]-addr[-2]))
 		next_delta.append(deltas[-1])
-DEBUG = True
-DB_ONE_HOT = False
-
-next_delta.insert(0, 0)
+next_delta.append(0)
 
 
 
 
+#O-H Variables
 next_delta_one_hot = []
 delta_one_hot = []
 pc_one_hot = []
 delta_seq = []
 pc_seq = []
-next_delta_format = []
-
-##DELTA INPUT VOCAB##
-#getting all unique values and their counts.
-#formatting to make it a dictonary for ease of manip.
+#	getting all unique values and their counts.
+#	formatting to make it a dictonary for ease of manip.
 delta_frequency_counter = Counter(deltas) 				#used for Next Delta
 delta_frequency_dictonary = dict(Counter(deltas)) 
 
-#Reducing the input vocab to only those with 10 or more occurances. Enumerates them for easy one-hot encoding.
-#TODO: change to only allow occurances with more than 10.
+
+##DELTA INPUT VOCAB##
+#	Reducing the input vocab to only those with 10 or more occurances. Enumerates them for easy one-hot encoding.
+#	TODO: change to only allow occurances with more than 10. Currently less for testing.
 deltas_oh_encode = dict()
 for counter,value in enumerate(i for i in delta_frequency_dictonary.keys() if delta_frequency_dictonary[i] >= 2):
 	deltas_oh_encode[value] = counter
@@ -84,6 +84,8 @@ for i in PCs:
 		pc_one_hot.append(len(pcs_oh_encode))
 
 ##NEXT_DELTA OUTPUT VOCAB
+#TODO: determine if i need to also use above 10 occuring; ex:
+#address occurs less than 10 times, but is still in top 50k.
 next_delta_frequency_dictonary = dict(delta_frequency_counter.most_common(49999)) #Creating an array of the top 50k deltas, will make it smaller if avliable.
 next_delta_oh_encode = dict()
 for counter,value in enumerate(i for i in next_delta_frequency_dictonary.keys()):
@@ -98,9 +100,9 @@ for i in next_delta:
 	else:
 		temp[next_delta_oh_encode[len(next_delta_oh_encode)]] = 1
 		next_delta_one_hot.append(temp)
+
+#debug assertion
 assert(len(pc_one_hot) == len(delta_one_hot))
-
-
 
 
 ##sequencing
@@ -113,20 +115,11 @@ delta_train, delta_test = np.array_split(delta_seq, indices_or_sections = 2)
 pc_train, pc_test = np.array_split(pc_seq, indices_or_sections = 2)
 y_train, y_test = np.array_split(next_delta_one_hot[time_steps:], indices_or_sections = 2)
 
+
+#DEBUG
 print(len(delta_train))
 print(len(pc_train))
 print(len(y_train))
-
-
-
-if(DEBUG and DB_ONE_HOT):
-	print(pc_array)
-	for i in pc_one_hot:
-		print(i)
-	print(most_common_deltas_array)
-	for i in deltas_one_hot:
-		print(i)
-	print(len(pc_one_hot) ==len(deltas_one_hot))
 
 ###Training hyperparameters for each model.###
 #EMBEDDING 					
@@ -144,57 +137,67 @@ if(DEBUG and DB_ONE_HOT):
 #Number of Centroids		12
 
 ##EMBEDDING##
-
-# t1 = [[1, 2, 3], [4, 5, 6]]
-# t2 = [[7, 8, 9], [10, 11, 12]]
-# tf.concat([t1, t2], 1)  # [[1, 2, 3, 7, 8, 9], [4, 5, 6, 10, 11, 12]]
-
-# # '''
-# # if(DEBUG):
-# # 	print(inputs)
-# # 	print(count_out_arr)
-# # '''
-# # print(mnist)
 #define constants
-#unrolled through 64 time steps
-time_steps=64			#how many previous addresses
+#unrolled through 64 time steps.
+#AKA how many previous addresses we're feeding into the machine at any given point.
+time_steps=64
 #hidden LSTM units
+#spooky
 num_units=128
-#rows of 28 pixels
-n_input= 64				##?
 #learning rate for adam
 learning_rate=0.001
 #mnist is meant to be classified in 10 classes(0-9).
-n_classes = len(next_delta_oh_encode) #TODO: modify to allow for less than 50k classes
+#our values are however many outputs we are given.
+n_classes = len(next_delta_oh_encode)
 #size of batch
+#AKA how many lines we feed into the machine in any given iteration.
+#mostly just for efficency's sake, we could do it one line at a time but that's
+#a lot.
 batch_size=64
 #defined in the paper
 embedding_size = 128
 #vocab sizes
+#AKA n_imput in other tutorials. Size of the vocabularly. Not sure if the +1 is necessary.
 pc_vocab_size = len(pcs_oh_encode)+1
 delta_vocab_size = len(deltas_oh_encode)+1
 
 
 #weights and biases of appropriate shape to accomplish above task
+#shape: LSTM units by classes. The learning weights and biasis of the actual machines and levels.
 out_weights=tf.Variable(tf.random_normal([num_units,n_classes]))
 out_bias=tf.Variable(tf.random_normal([n_classes]))
 
-#batch size, time_steps
+#The embedding size. 
+#	ALEX: Pretty sure this is just what we've learned already, applies to our newest values.
+#Delta embadding
 np_delta = tf.placeholder(tf.int32,[batch_size,time_steps])
+#input format:
+# [
+# 	1.[1,2,3,...time_steps]
+# 	2.[1,2,3,...time_steps]
+# 	3.[1,2,3,...time_steps]
+# 	...
+# 	batch_size.[1,2,3,...time_steps]
+# ]
 delta_embeddings = tf.Variable(tf.random_normal([delta_vocab_size,embedding_size]))
 embedded_deltas = tf.nn.embedding_lookup(delta_embeddings, np_delta)
 
+#PC embedding
 np_pcs = tf.placeholder(tf.int32,[batch_size,time_steps])
 pc_embeddings = tf.Variable(tf.random_normal([pc_vocab_size,embedding_size]))
 embedded_pcs = tf.nn.embedding_lookup(pc_embeddings, np_pcs)
 
+#Concatenation
+#	uhhhh.... still not sure here. It works, but i'm not sure if it's the right axis.
+embedded_concat = tf.concat([embedded_pcs, embedded_deltas], 2) 
 
-
-embedded_concat = tf.concat([embedded_pcs, embedded_deltas], 2)  # uhhhh.... still not sure here
-
+#DEbUG: shaping
 print(embedded_concat.get_shape()) # return (64, 128, 50000)
 
+#pre one-hot encoded prediction deltas
 y = tf.placeholder(tf.int32,[batch_size,n_classes])
+
+#DEBUG:
 print(y.get_shape()) 
 
 #print shape of the tensor: tf.shape()
@@ -214,6 +217,8 @@ outputs,_=rnn.static_rnn(lstm_layer,input,dtype="float32")
 #converting last output of dimension [batch_size,num_units] to [batch_size,n_classes] by out_weight multiplication
 prediction=tf.matmul(outputs[-1],out_weights)+out_bias
 
+
+#DEBUG:predictions
 print("***prediction***")
 print(prediction.get_shape())
 
@@ -227,9 +232,10 @@ correct_prediction=tf.equal(tf.argmax(prediction,1),tf.argmax(y,1))
 accuracy=tf.reduce_mean(tf.cast(correct_prediction,tf.float32))
 
 
-iterations = len(delta_train)/batch_size
 #initialize variables
 init=tf.global_variables_initializer()
+
+iterations = len(delta_train)/batch_size
 with tf.Session() as sess:
     sess.run(init)
     iter=1
@@ -257,17 +263,4 @@ with tf.Session() as sess:
     test_pc = pc_test[:batch_size]
     test_next_delta = y_test[:batch_size]
     fd = {np_delta:test_delta, np_pcs:test_pc, y:test_next_delta}
-
     print("Testing Accuracy:", sess.run(accuracy, feed_dict=fd))
-'''
-NUM_EXAMPLES = len(count_out_arr) / 2
-get test_input and test_output
-algorithm 0...NUM_EXAMPLES
-get train_input and train_output
-algorithm NUM_EXAMPLES...len(count_out_arr) / 2
-
-algorithm: 
-iterate through each entry
-first sub-entry of entry goes into input
-second sub-entry of entry goes into output
-'''
