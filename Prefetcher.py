@@ -6,6 +6,7 @@ import tensorflow as tf
 import sys
 from collections import Counter
 from tensorflow.contrib import rnn
+import graphing as gra
 
 #tsne?
 from tensorflow.contrib.tensorboard.plugins import projector
@@ -172,124 +173,153 @@ embedding_size = 128
 #AKA n_imput in other tutorials. Size of the vocabularly. Not sure if the +1 is necessary.
 pc_vocab_size = len(pcs_oh_encode)+1
 delta_vocab_size = len(deltas_oh_encode)+1
+with tf.Graph().as_default():
 
+	with tf.Session() as sess:
 
-#weights and biases of appropriate shape to accomplish above task
-#shape: LSTM units by classes. The learning weights and biasis of the actual machines and levels.
-out_weights=tf.Variable(tf.random_normal([num_units,n_classes]))
-out_bias=tf.Variable(tf.random_normal([n_classes]))
+		#weights and biases of appropriate shape to accomplish above task
+		#shape: LSTM units by classes. The learning weights and biasis of the actual machines and levels.
+		out_weights=tf.Variable(tf.random_normal([num_units,n_classes]) ) #histogram
+		tf.summary.histogram("weights", out_weights)
+		out_bias=tf.Variable(tf.random_normal([n_classes]))
+		tf.summary.histogram("bias", out_bias)
 
-#The embedding size. 
-#	ALEX: Pretty sure this is just what we've learned already, applies to our newest values.
-#Delta embadding
-np_delta = tf.placeholder(tf.int32,[batch_size,time_steps])
-#input format:
-# [
-# 	1.[1,2,3,...time_steps]
-# 	2.[1,2,3,...time_steps]
-# 	3.[1,2,3,...time_steps]
-# 	...
-# 	batch_size.[1,2,3,...time_steps]
-# ]
-delta_embeddings = tf.Variable(tf.random_normal([delta_vocab_size,embedding_size]))
-embedded_deltas = tf.nn.embedding_lookup(delta_embeddings, np_delta)
+		#The embedding size. 
+		#	ALEX: Pretty sure this is just what we've learned already, applies to our newest values.
+		#Delta embadding
+		np_delta = tf.placeholder(tf.int32,[batch_size,time_steps])
+		#input format:
+		# [
+		# 	1.[1,2,3,...time_steps]
+		# 	2.[1,2,3,...time_steps]
+		# 	3.[1,2,3,...time_steps]
+		# 	...
+		# 	batch_size.[1,2,3,...time_steps]
+		# ]
+		delta_embeddings = tf.Variable(tf.random_normal([delta_vocab_size,embedding_size]))
+		embedded_deltas = tf.nn.embedding_lookup(delta_embeddings, np_delta)
 
-#PC embedding
-np_pcs = tf.placeholder(tf.int32,[batch_size,time_steps])
-pc_embeddings = tf.Variable(tf.random_normal([pc_vocab_size,embedding_size]))
-embedded_pcs = tf.nn.embedding_lookup(pc_embeddings, np_pcs)
+		#PC embedding
+		np_pcs = tf.placeholder(tf.int32,[batch_size,time_steps])
+		pc_embeddings = tf.Variable(tf.random_normal([pc_vocab_size,embedding_size]))
+		embedded_pcs = tf.nn.embedding_lookup(pc_embeddings, np_pcs)
 
-#Concatenation
-#	uhhhh.... still not sure here. It works, but i'm not sure if it's the right axis.
-embedded_concat = tf.concat([embedded_pcs, embedded_deltas], 2) 
+		#Concatenation
+		#	uhhhh.... still not sure here. It works, but i'm not sure if it's the right axis.
+		embedded_concat = tf.concat([embedded_pcs, embedded_deltas], 2) 
 
-#DEbUG: shaping
-print(embedded_concat.get_shape()) # return (64, 128, 50000)
+		#DEbUG: shaping
+		print(embedded_concat.get_shape()) # return (64, 128, 50000)
 
-#pre one-hot encoded prediction deltas
-y = tf.placeholder(tf.int32,[batch_size,n_classes])
+		#pre one-hot encoded prediction deltas
+		y = tf.placeholder(tf.int32,[batch_size,n_classes])
 
-#DEBUG:
-print(y.get_shape()) 
+		#DEBUG:
+		print(y.get_shape()) 
 
-#print shape of the tensor: tf.shape()
-#embedding: take a large feature, reduce it's dimensionality.
-#	-creates a mapping to a smaller vector
-#Predicts a one-hot
+		#print shape of the tensor: tf.shape()
+		#embedding: take a large feature, reduce it's dimensionality.
+		#	-creates a mapping to a smaller vector
+		#Predicts a one-hot
 
-#processing the input tensor from [batch_size,n_steps,n_input] to "time_steps" number of [batch_size,n_input] tensors
-input=tf.unstack(embedded_concat,time_steps,1)
-
-
-
-#defining the network
-lstm_layer=rnn.BasicLSTMCell(num_units,forget_bias=1) 	#really slow, can use gpus
-outputs,_=rnn.static_rnn(lstm_layer,input,dtype="float32")
-
-#converting last output of dimension [batch_size,num_units] to [batch_size,n_classes] by out_weight multiplication
-prediction=tf.matmul(outputs[-1],out_weights)+out_bias
-
-
-#DEBUG:predictions
-print("***prediction***")
-print(prediction.get_shape())
-
-#loss_function
-loss=tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=prediction,labels=y))
-#optimization
-opt=tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(loss)
-
-#model evaluation
-correct_prediction=tf.equal(tf.argmax(prediction,1),tf.argmax(y,1))
-accuracy=tf.reduce_mean(tf.cast(correct_prediction,tf.float32))
-
-
-#initialize variables
-
-init=tf.global_variables_initializer()
-
-vectors = []
-
-iterations = len(delta_train)/batch_size
-with tf.Session() as sess:
-    sess.run(init)
-    iter=1
-    while iter<iterations:
-        batch_delta = delta_train[(iter-1)*batch_size:iter*batch_size]
-        batch_pc = pc_train[(iter-1)*batch_size:iter*batch_size]
-        batch_next_delta = y_train[(iter-1)*batch_size:iter*batch_size]
-
-        #batch_x=batch_x.reshape((batch_size,time_steps,n_input))
-        fd = {np_delta:batch_delta, np_pcs:batch_pc, y:batch_next_delta}
-        sess.run(opt, feed_dict=fd)
-
-        if iter%10 == 0:
-            acc=sess.run(accuracy,feed_dict=fd)
-            los=sess.run(loss,feed_dict=fd)
-            print("For iter ",iter)
-            print("Accuracy ",acc)
-            print("Loss ",los)
-            print("__________________")
-
-        iter=iter+1
-
-    # #calculating test accuracy 
-    test_delta = delta_test[:batch_size]
-    test_pc = pc_test[:batch_size]
-    test_next_delta = y_test[:batch_size]
-    fd = {np_delta:test_delta, np_pcs:test_pc, y:test_next_delta}
-    print("Testing Accuracy:", sess.run(accuracy, feed_dict=fd))
-    print(sess.run(out_weights + out_bias).shape)
-    vectors = sess.run(out_weights + out_bias)
+		#processing the input tensor from [batch_size,n_steps,n_input] to "time_steps" number of [batch_size,n_input] tensors
+		input=tf.unstack(embedded_concat,time_steps,1)
 
 
 
-model = TSNE(n_components=2, random_state=0)
-vectors = model.fit_transform(vectors)
-normalizer = preprocessing.Normalizer()
-vectors =  normalizer.fit_transform(vectors, 'l2')
-fig, ax = plt.subplots()
-for out_delta in next_delta:
-    print(out_delta, vectors[next_delta_oh_encode[out_delta]][1])
-    ax.annotate(out_delta, (vectors[next_delta_oh_encode[out_delta]][0],vectors[next_delta_oh_encode[out_delta]][1] ))
-plt.show()
+		#defining the network
+		lstm_layer=rnn.BasicLSTMCell(num_units,forget_bias=1) 	#really slow, can use gpus
+		outputs,_=rnn.static_rnn(lstm_layer,input,dtype="float32")
+
+		#converting last output of dimension [batch_size,num_units] to [batch_size,n_classes] by out_weight multiplication
+		prediction=tf.matmul(outputs[-1],out_weights)+out_bias
+		tf.summary.histogram('Predictions', prediction)
+
+
+		#DEBUG:predictions
+		print("***prediction***")
+		print(prediction.get_shape())
+
+		#loss_function
+		loss=tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=prediction,labels=y)) #summary
+		#optimization
+		opt=tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(loss)
+
+		#model evaluation
+		correct_prediction=tf.equal(tf.argmax(prediction,1),tf.argmax(y,1))
+		accuracy=tf.reduce_mean(tf.cast(correct_prediction,tf.float32)) #summary
+
+		tf.summary.scalar('accuracy', accuracy)
+
+
+		#summary: merge all
+		#tf.summary.FileWriter
+
+		#graph object?!?!??
+
+
+		#initialize variables
+
+
+		merged = tf.summary.merge_all()
+		train_writer = tf.summary.FileWriter("/u/alsritt/comparch/CS378FinalProject/train", sess.graph)
+		test_writer = tf.summary.FileWriter("/u/alsritt/comparch/CS378FinalProject/train")
+
+		init=tf.global_variables_initializer()
+
+		vectors = []
+
+		iterations = len(delta_train)/batch_size
+
+		sess.run(init)
+		iter=1
+		while iter<iterations:
+			batch_delta = delta_train[(iter-1)*batch_size:iter*batch_size]
+			batch_pc = pc_train[(iter-1)*batch_size:iter*batch_size]
+			batch_next_delta = y_train[(iter-1)*batch_size:iter*batch_size]
+
+			#batch_x=batch_x.reshape((batch_size,time_steps,n_input))
+			fd = {np_delta:batch_delta, np_pcs:batch_pc, y:batch_next_delta}
+			summ, op_run = sess.run([merged, opt], feed_dict=fd)
+			train_writer.add_summary(summ, iter)
+			saver = tf.train.Saver([pc_embeddings])
+
+			saver.save(sess, "/u/alsritt/comparch/CS378FinalProject/train/model.ckpt", iter)
+
+			if iter%10 == 0:
+				acc=sess.run(accuracy,feed_dict=fd)
+				summ, los = sess.run([merged, loss],feed_dict=fd)
+				print("For iter ",iter)
+				print("Accuracy ",acc)
+				print("Loss ",los)
+				print("__________________")
+
+
+			iter=iter+1
+
+		# #calculating test accuracy 
+		test_delta = delta_test[:batch_size]
+		test_pc = pc_test[:batch_size]
+		test_next_delta = y_test[:batch_size]
+		fd = {np_delta:test_delta, np_pcs:test_pc, y:test_next_delta}
+		print("Testing Accuracy:", sess.run(accuracy, feed_dict=fd))
+		print(sess.run(out_weights + out_bias).shape)
+		# vectors = sess.run(out_weights + out_bias)
+		train_writer.close()
+		config = projector.ProjectorConfig()
+		# One can add multiple embeddings.
+		embedding = config.embeddings.add()
+		embedding.tensor_name = out_weights.name
+		# Saves a config file that TensorBoard will read during startup.
+		projector.visualize_embeddings(train_writer, config)
+
+
+# model = TSNE(n_components=2, random_state=0)
+# vectors = model.fit_transform(vectors)
+# normalizer = preprocessing.Normalizer()
+# vectors =  normalizer.fit_transform(vectors, 'l2')
+# fig, ax = plt.subplots()
+# for out_delta in next_delta:
+#     print(out_delta, vectors[next_delta_oh_encode[out_delta]][1])
+#     ax.annotate(out_delta, (vectors[next_delta_oh_encode[out_delta]][0],vectors[next_delta_oh_encode[out_delta]][1] ))
+# plt.show()
