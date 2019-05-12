@@ -7,6 +7,7 @@ import sys
 from collections import Counter
 from tensorflow.contrib import rnn
 import graphing as gra
+import matplotlib.pyplot as plt
 
 #tsne?
 from tensorflow.contrib.tensorboard.plugins import projector
@@ -262,8 +263,8 @@ with tf.Graph().as_default():
 
 
 		merged = tf.summary.merge_all()
-		train_writer = tf.summary.FileWriter("/u/alsritt/comparch/CS378FinalProject/train", sess.graph)
-		test_writer = tf.summary.FileWriter("/u/alsritt/comparch/CS378FinalProject/train")
+		#train_writer = tf.summary.FileWriter("/u/alsritt/comparch/CS378FinalProject/train", sess.graph)
+		#test_writer = tf.summary.FileWriter("/u/alsritt/comparch/CS378FinalProject/train")
 
 		init=tf.global_variables_initializer()
 
@@ -281,10 +282,10 @@ with tf.Graph().as_default():
 			#batch_x=batch_x.reshape((batch_size,time_steps,n_input))
 			fd = {np_delta:batch_delta, np_pcs:batch_pc, y:batch_next_delta}
 			summ, op_run = sess.run([merged, opt], feed_dict=fd)
-			train_writer.add_summary(summ, iter)
-			saver = tf.train.Saver([pc_embeddings])
+			#train_writer.add_summary(summ, iter)
+			#saver = tf.train.Saver([pc_embeddings])
 
-			saver.save(sess, "/u/alsritt/comparch/CS378FinalProject/train/model.ckpt", iter)
+			#saver.save(sess, "/u/alsritt/comparch/CS378FinalProject/train/model.ckpt", iter)
 
 			if iter%10 == 0:
 				acc=sess.run(accuracy,feed_dict=fd)
@@ -304,14 +305,14 @@ with tf.Graph().as_default():
 		fd = {np_delta:test_delta, np_pcs:test_pc, y:test_next_delta}
 		print("Testing Accuracy:", sess.run(accuracy, feed_dict=fd))
 		print(sess.run(out_weights + out_bias).shape)
-		# vectors = sess.run(out_weights + out_bias)
-		train_writer.close()
-		config = projector.ProjectorConfig()
-		# One can add multiple embeddings.
-		embedding = config.embeddings.add()
-		embedding.tensor_name = out_weights.name
-		# Saves a config file that TensorBoard will read during startup.
-		projector.visualize_embeddings(train_writer, config)
+		# # vectors = sess.run(out_weights + out_bias)
+		# #train_writer.close()
+		# config = projector.ProjectorConfig()
+		# # One can add multiple embeddings.
+		# embedding = config.embeddings.add()
+		# embedding.tensor_name = out_weights.name
+		# # Saves a config file that TensorBoard will read during startup.
+		# projector.visualize_embeddings(train_writer, config)
 
 
 # model = TSNE(n_components=2, random_state=0)
@@ -323,3 +324,30 @@ with tf.Graph().as_default():
 #     print(out_delta, vectors[next_delta_oh_encode[out_delta]][1])
 #     ax.annotate(out_delta, (vectors[next_delta_oh_encode[out_delta]][0],vectors[next_delta_oh_encode[out_delta]][1] ))
 # plt.show()
+
+# coverage: benchmark vs coverage (percentage)
+# speedup: benchmark vs speedup (decimal/real)
+#		coverage_objects = ()
+#		coverage_x_pos = tf.constant().eval()
+#		coverage_y_pos = tf.constant().eval()
+#		#100 x (Prefetch Hits/(Prefetch Hits + Cache Misses))
+
+#		speedup_objects = ()
+#		speedup_x_pos = tf.constant().eval()
+#		speedup_y_pos = tf.constant().eval()
+#
+#		plt.subplot(2, 1, 1)
+#		plt.bar(coverage_x_pos, coverage_y_pos, align = 'center', alpha = 0.5)
+#		plt.title('Coverage')
+#		plt.xticks(coverage_x_pos, coverage_objects)
+#		plt.xlabel('Benchmarks')
+#		plt.ylabel('Coverage (%)')
+#
+#		plt.subplot(2, 1, 2)
+#		plt.bar(speedup_x_pos, speedup_y_pos, align = 'center', alpha = 0.5)
+#		plt.title('Speedup')
+#		plt.xticks(speedup_x_pos, speedup_objects)
+#		plt.xlabel('Benchmarks')
+#		plt.ylabel('Speedup (%)')
+
+#		plt.show()
