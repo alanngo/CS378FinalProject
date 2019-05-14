@@ -1,0 +1,12 @@
+astar
+cactusADM
+mcf
+omnetpp
+soplex.med
+tonto
+bzip2
+gcc
+milc
+soplex
+sphinx3
+xalanc

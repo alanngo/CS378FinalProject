@@ -9,6 +9,7 @@ from tensorflow.contrib import rnn
 import graphing as gra
 import matplotlib.pyplot as plt
 
+
 #tsne?
 from tensorflow.contrib.tensorboard.plugins import projector
 from sklearn.manifold import TSNE
@@ -21,7 +22,7 @@ from sklearn import preprocessing
 #	DEBUG
 #	TODO
 
-
+output_dir = sys.argv[2]
 
 # File Input
 print("This is the name of the script: ", sys.argv[0])
@@ -263,8 +264,8 @@ with tf.Graph().as_default():
 
 
 		merged = tf.summary.merge_all()
-		#train_writer = tf.summary.FileWriter("/u/alsritt/comparch/CS378FinalProject/train", sess.graph)
-		#test_writer = tf.summary.FileWriter("/u/alsritt/comparch/CS378FinalProject/train")
+		train_writer = tf.summary.FileWriter(output_dir, sess.graph)
+		test_writer = tf.summary.FileWriter(output_dir)
 
 		init=tf.global_variables_initializer()
 
@@ -282,12 +283,13 @@ with tf.Graph().as_default():
 			#batch_x=batch_x.reshape((batch_size,time_steps,n_input))
 			fd = {np_delta:batch_delta, np_pcs:batch_pc, y:batch_next_delta}
 			summ, op_run = sess.run([merged, opt], feed_dict=fd)
-			#train_writer.add_summary(summ, iter)
-			#saver = tf.train.Saver([pc_embeddings])
-
-			#saver.save(sess, "/u/alsritt/comparch/CS378FinalProject/train/model.ckpt", iter)
 
 			if iter%10 == 0:
+				train_writer.add_summary(summ, iter)
+				saver = tf.train.Saver([pc_embeddings])
+
+				saver.save(sess, "/u/alsritt/comparch/CS378FinalProject/train/model.ckpt", iter)
+
 				acc=sess.run(accuracy,feed_dict=fd)
 				summ, los = sess.run([merged, loss],feed_dict=fd)
 				print("For iter ",iter)
@@ -297,22 +299,30 @@ with tf.Graph().as_default():
 
 
 			iter=iter+1
-
 		# #calculating test accuracy 
-		test_delta = delta_test[:batch_size]
-		test_pc = pc_test[:batch_size]
-		test_next_delta = y_test[:batch_size]
-		fd = {np_delta:test_delta, np_pcs:test_pc, y:test_next_delta}
-		print("Testing Accuracy:", sess.run(accuracy, feed_dict=fd))
-		print(sess.run(out_weights + out_bias).shape)
-		# # vectors = sess.run(out_weights + out_bias)
-		# #train_writer.close()
-		# config = projector.ProjectorConfig()
-		# # One can add multiple embeddings.
-		# embedding = config.embeddings.add()
-		# embedding.tensor_name = out_weights.name
-		# # Saves a config file that TensorBoard will read during startup.
-		# projector.visualize_embeddings(train_writer, config)
+		testing_acc = []
+		iterations = len(delta_test)/batch_size
+		print(iterations)
+		iter=1
+		while iter<iterations:
+			print(iter)
+			batch_delta = delta_test[(iter-1)*batch_size:iter*batch_size]
+			batch_pc = pc_test[(iter-1)*batch_size:iter*batch_size]
+			batch_next_delta = y_test[(iter-1)*batch_size:iter*batch_size]
+
+			#batch_x=batch_x.reshape((batch_size,time_steps,n_input))
+			fd = {np_delta:batch_delta, np_pcs:batch_pc, y:batch_next_delta}
+			acc=sess.run(accuracy,feed_dict=fd)
+			testing_acc.append(acc)
+			iter=iter+1
+
+		print("Testing Accuracy:", np.mean(testing_acc))
+		config = projector.ProjectorConfig()
+		# One can add multiple embeddings.
+		embedding = config.embeddings.add()
+		embedding.tensor_name = delta_embeddings.name
+		# Saves a config file that TensorBoard will read during startup.
+		projector.visualize_embeddings(train_writer, config)
 
 
 # model = TSNE(n_components=2, random_state=0)
