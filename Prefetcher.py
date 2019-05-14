@@ -263,9 +263,8 @@ with tf.Graph().as_default():
 		#initialize variables
 
 
-		merged = tf.summary.merge_all()
 		train_writer = tf.summary.FileWriter(output_dir, sess.graph)
-		test_writer = tf.summary.FileWriter(output_dir)
+		# test_writer = tf.summary.FileWriter(output_dir)
 
 		init=tf.global_variables_initializer()
 
@@ -282,20 +281,19 @@ with tf.Graph().as_default():
 
 			#batch_x=batch_x.reshape((batch_size,time_steps,n_input))
 			fd = {np_delta:batch_delta, np_pcs:batch_pc, y:batch_next_delta}
-			summ, op_run = sess.run([merged, opt], feed_dict=fd)
+			op_run = sess.run(opt, feed_dict=fd)
 
-			if iter%10 == 0:
-				train_writer.add_summary(summ, iter)
+			if iter%100 == 0:
 				saver = tf.train.Saver([pc_embeddings])
 
-				saver.save(sess, output_dir+"/model.ckpt", iter)
+				saver.save(sess, os.path.join(output_dir, 'models.ckpt'), iter)
 
 				acc=sess.run(accuracy,feed_dict=fd)
-				summ, los = sess.run([merged, loss],feed_dict=fd)
-				print("For iter ",iter)
-				print("Accuracy ",acc)
-				print("Loss ",los)
-				print("__________________")
+				los = sess.run(loss,feed_dict=fd)
+				# print("For iter ",iter)
+				# print("Accuracy ",acc)
+				# print("Loss ",los)
+				# print("__________________")
 
 
 			iter=iter+1
