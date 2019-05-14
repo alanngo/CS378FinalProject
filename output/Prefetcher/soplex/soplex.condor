@@ -1,0 +1,13 @@
++Group="GRAD"
++Project="ARCHITECTURE"
++ProjectDescription="Micro-architectural simulation"
+universe=vanilla
+getenv=true
+Rank=Memory
+notification=Error
+output=CONDOR.soplex.OUT
+error=CONDOR.soplex.ERR
+notify_user=matthewp@cs.utexas.edu
+initialdir=/u/alsritt/comparch/CS378FinalProject/output/Prefetcher/soplex
+executable=/u/alsritt/comparch/CS378FinalProject/output/Prefetcher/soplex/soplex.sh
+queue

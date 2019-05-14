@@ -1,0 +1,13 @@
++Group="GRAD"
++Project="ARCHITECTURE"
++ProjectDescription="Micro-architectural simulation"
+universe=vanilla
+getenv=true
+Rank=Memory
+notification=Error
+output=CONDOR.milc.OUT
+error=CONDOR.milc.ERR
+notify_user=matthewp@cs.utexas.edu
+initialdir=/u/alsritt/comparch/CS378FinalProject/output/Prefetcher/milc
+executable=/u/alsritt/comparch/CS378FinalProject/output/Prefetcher/milc/milc.sh
+queue

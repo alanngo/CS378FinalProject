@@ -230,7 +230,7 @@ with tf.Graph().as_default():
 
 
 		#defining the network
-		lstm_layer=rnn.BasicLSTMCell(num_units,forget_bias=1) 	#really slow, can use gpus
+		lstm_layer = tf.contrib.cudnn_rnn.CudnnCompatibleLSTMCell(num_units)
 		outputs,_=rnn.static_rnn(lstm_layer,input,dtype="float32")
 
 		#converting last output of dimension [batch_size,num_units] to [batch_size,n_classes] by out_weight multiplication
@@ -288,7 +288,7 @@ with tf.Graph().as_default():
 				train_writer.add_summary(summ, iter)
 				saver = tf.train.Saver([pc_embeddings])
 
-				saver.save(sess, "/u/alsritt/comparch/CS378FinalProject/train/model.ckpt", iter)
+				saver.save(sess, output_dir+"/model.ckpt", iter)
 
 				acc=sess.run(accuracy,feed_dict=fd)
 				summ, los = sess.run([merged, loss],feed_dict=fd)
@@ -305,7 +305,6 @@ with tf.Graph().as_default():
 		print(iterations)
 		iter=1
 		while iter<iterations:
-			print(iter)
 			batch_delta = delta_test[(iter-1)*batch_size:iter*batch_size]
 			batch_pc = pc_test[(iter-1)*batch_size:iter*batch_size]
 			batch_next_delta = y_test[(iter-1)*batch_size:iter*batch_size]

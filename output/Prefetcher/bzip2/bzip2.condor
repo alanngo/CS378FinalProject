@@ -1,0 +1,13 @@
++Group="GRAD"
++Project="ARCHITECTURE"
++ProjectDescription="Micro-architectural simulation"
+universe=vanilla
+getenv=true
+Rank=Memory
+notification=Error
+output=CONDOR.bzip2.OUT
+error=CONDOR.bzip2.ERR
+notify_user=matthewp@cs.utexas.edu
+initialdir=/u/alsritt/comparch/CS378FinalProject/output/Prefetcher/bzip2
+executable=/u/alsritt/comparch/CS378FinalProject/output/Prefetcher/bzip2/bzip2.sh
+queue

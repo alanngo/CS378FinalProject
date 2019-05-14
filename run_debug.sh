@@ -23,9 +23,10 @@ if test ! -f ${PROGRAM}; then
     echo "Usage: ./run_debug.sh name_of_program.py"
     exit
 fi
+PY_DIR=$(pwd)
 
 # Run your program on astar
 # Alex, 4/18/19 - may not run on anything but the cluster
 echo "Running ${PROGRAM} on astar_163B ..."
-python3 ${PROGRAM} astar.benchmark /u/alsritt/comparch/CS378FinalProject/train
+python ${PROGRAM} astar.benchmark ${PY_DIR}/train
 

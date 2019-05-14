@@ -1,5 +1,5 @@
 cluster:
-	./run_cluster.sh Prefetcher.py 
+	./run_cluster.sh Prefetcher.py < benchmarks
 
 tasks:
 	/lusr/opt/condor/bin/condor_q

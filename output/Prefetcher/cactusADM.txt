@@ -1,0 +1,40 @@
+('This is the name of the script: ', '/u/alsritt/comparch/CS378FinalProject/Prefetcher.py')
+('Number of arguments: ', 3)
+('The arguments are: ', "['/u/alsritt/comparch/CS378FinalProject/Prefetcher.py', '/scratch/cluster/akanksha/dnn_ordered_traces2/cactusADM', '/u/alsritt/comparch/CS378FinalProject/output/Prefetcher/cactusADM/tsne']")
+[0, 64, 64, -97, 161]
+[64, 64, -97, 161, -89]
+605415
+605415
+605415
+(64, 64, 256)
+(64, 874)
+***prediction***
+(64, 874)
+('For iter ', 10)
+('Accuracy ', 0.03125)
+('Loss ', 7.360181)
+__________________
+('For iter ', 20)
+('Accuracy ', 0.296875)
+('Loss ', 3.8741045)
+__________________
+('For iter ', 30)
+('Accuracy ', 0.296875)
+('Loss ', 4.182819)
+__________________
+('For iter ', 40)
+('Accuracy ', 0.8125)
+('Loss ', 0.7315202)
+__________________
+('For iter ', 50)
+('Accuracy ', 1.0)
+('Loss ', 0.18759796)
+__________________
+('For iter ', 60)
+('Accuracy ', 0.875)
+('Loss ', 1.2450225)
+__________________
+('For iter ', 70)
+('Accuracy ', 0.96875)
+('Loss ', 0.13196218)
+__________________

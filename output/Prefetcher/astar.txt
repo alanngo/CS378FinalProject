@@ -1,0 +1,24 @@
+('This is the name of the script: ', '/u/alsritt/comparch/CS378FinalProject/Prefetcher.py')
+('Number of arguments: ', 3)
+('The arguments are: ', "['/u/alsritt/comparch/CS378FinalProject/Prefetcher.py', '/scratch/cluster/akanksha/dnn_ordered_traces2/astar', '/u/alsritt/comparch/CS378FinalProject/output/Prefetcher/astar/tsne']")
+[0, 64, -32, 5, 91]
+[64, -32, 5, 91, -56]
+575499
+575499
+575500
+(64, 64, 256)
+(64, 192)
+***prediction***
+(64, 192)
+('For iter ', 10)
+('Accuracy ', 0.3125)
+('Loss ', 4.3129616)
+__________________
+('For iter ', 20)
+('Accuracy ', 0.4375)
+('Loss ', 2.5612574)
+__________________
+('For iter ', 30)
+('Accuracy ', 0.359375)
+('Loss ', 2.6210577)
+__________________

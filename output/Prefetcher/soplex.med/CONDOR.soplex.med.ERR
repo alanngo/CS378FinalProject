@@ -1,0 +1,73 @@
+2019-05-14 15:24:04.069534: I tensorflow/core/platform/profile_utils/cpu_utils.cc:94] CPU Frequency: 2400030000 Hz
+2019-05-14 15:24:04.071805: I tensorflow/compiler/xla/service/service.cc:150] XLA service 0x3214efa0 executing computations on platform Host. Devices:
+2019-05-14 15:24:04.071843: I tensorflow/compiler/xla/service/service.cc:158]   StreamExecutor device (0): <undefined>, <undefined>
+WARNING:tensorflow:From /u/alsritt/.local/lib/python2.7/site-packages/tensorflow/python/framework/op_def_library.py:263: colocate_with (from tensorflow.python.framework.ops) is deprecated and will be removed in a future version.
+Instructions for updating:
+Colocations handled automatically by placer.
+WARNING:tensorflow:From /u/alsritt/comparch/CS378FinalProject/Prefetcher.py:233: __init__ (from tensorflow.python.ops.rnn_cell_impl) is deprecated and will be removed in a future version.
+Instructions for updating:
+This class is equivalent as tf.keras.layers.LSTMCell, and will be replaced by that in Tensorflow 2.0.
+WARNING:tensorflow:From /u/alsritt/comparch/CS378FinalProject/Prefetcher.py:234: static_rnn (from tensorflow.python.ops.rnn) is deprecated and will be removed in a future version.
+Instructions for updating:
+Please use `keras.layers.RNN(cell, unroll=True)`, which is equivalent to this API
+WARNING:tensorflow:From /u/alsritt/comparch/CS378FinalProject/Prefetcher.py:246: softmax_cross_entropy_with_logits (from tensorflow.python.ops.nn_ops) is deprecated and will be removed in a future version.
+Instructions for updating:
+
+Future major versions of TensorFlow will allow gradients to flow
+into the labels input on backprop by default.
+
+See `tf.nn.softmax_cross_entropy_with_logits_v2`.
+
+WARNING:tensorflow:From /u/alsritt/.local/lib/python2.7/site-packages/tensorflow/python/ops/array_grad.py:425: to_int32 (from tensorflow.python.ops.math_ops) is deprecated and will be removed in a future version.
+Instructions for updating:
+Use tf.cast instead.
+2019-05-14 15:37:21.107329: W tensorflow/core/framework/op_kernel.cc:1401] OP_REQUIRES failed at save_restore_v2_ops.cc:137 : Resource exhausted: /u/alsritt/comparch/CS378FinalProject/train/model.ckpt-77.data-00000-of-00001.tempstate2109333119069222052; Disk quota exceeded
+Traceback (most recent call last):
+  File "/u/alsritt/comparch/CS378FinalProject/Prefetcher.py", line 289, in <module>
+    saver.save(sess, "/u/alsritt/comparch/CS378FinalProject/train/model.ckpt", iter)
+  File "/u/alsritt/.local/lib/python2.7/site-packages/tensorflow/python/training/saver.py", line 1171, in save
+    {self.saver_def.filename_tensor_name: checkpoint_file})
+  File "/u/alsritt/.local/lib/python2.7/site-packages/tensorflow/python/client/session.py", line 929, in run
+    run_metadata_ptr)
+  File "/u/alsritt/.local/lib/python2.7/site-packages/tensorflow/python/client/session.py", line 1152, in _run
+    feed_dict_tensor, options, run_metadata)
+  File "/u/alsritt/.local/lib/python2.7/site-packages/tensorflow/python/client/session.py", line 1328, in _do_run
+    run_metadata)
+  File "/u/alsritt/.local/lib/python2.7/site-packages/tensorflow/python/client/session.py", line 1348, in _do_call
+    raise type(e)(node_def, op, message)
+tensorflow.python.framework.errors_impl.ResourceExhaustedError: /u/alsritt/comparch/CS378FinalProject/train/model.ckpt-77.data-00000-of-00001.tempstate2109333119069222052; Disk quota exceeded
+	 [[node save_76/SaveV2 (defined at /u/alsritt/comparch/CS378FinalProject/Prefetcher.py:287) ]]
+Hint: If you want to see a list of allocated tensors when OOM happens, add report_tensor_allocations_upon_oom to RunOptions for current allocation info.
+
+
+Caused by op u'save_76/SaveV2', defined at:
+  File "/u/alsritt/comparch/CS378FinalProject/Prefetcher.py", line 287, in <module>
+    saver = tf.train.Saver([pc_embeddings])
+  File "/u/alsritt/.local/lib/python2.7/site-packages/tensorflow/python/training/saver.py", line 832, in __init__
+    self.build()
+  File "/u/alsritt/.local/lib/python2.7/site-packages/tensorflow/python/training/saver.py", line 844, in build
+    self._build(self._filename, build_save=True, build_restore=True)
+  File "/u/alsritt/.local/lib/python2.7/site-packages/tensorflow/python/training/saver.py", line 881, in _build
+    build_save=build_save, build_restore=build_restore)
+  File "/u/alsritt/.local/lib/python2.7/site-packages/tensorflow/python/training/saver.py", line 510, in _build_internal
+    save_tensor = self._AddSaveOps(filename_tensor, saveables)
+  File "/u/alsritt/.local/lib/python2.7/site-packages/tensorflow/python/training/saver.py", line 210, in _AddSaveOps
+    save = self.save_op(filename_tensor, saveables)
+  File "/u/alsritt/.local/lib/python2.7/site-packages/tensorflow/python/training/saver.py", line 124, in save_op
+    tensors)
+  File "/u/alsritt/.local/lib/python2.7/site-packages/tensorflow/python/ops/gen_io_ops.py", line 1807, in save_v2
+    name=name)
+  File "/u/alsritt/.local/lib/python2.7/site-packages/tensorflow/python/framework/op_def_library.py", line 788, in _apply_op_helper
+    op_def=op_def)
+  File "/u/alsritt/.local/lib/python2.7/site-packages/tensorflow/python/util/deprecation.py", line 507, in new_func
+    return func(*args, **kwargs)
+  File "/u/alsritt/.local/lib/python2.7/site-packages/tensorflow/python/framework/ops.py", line 3300, in create_op
+    op_def=op_def)
+  File "/u/alsritt/.local/lib/python2.7/site-packages/tensorflow/python/framework/ops.py", line 1801, in __init__
+    self._traceback = tf_stack.extract_stack()
+
+ResourceExhaustedError (see above for traceback): /u/alsritt/comparch/CS378FinalProject/train/model.ckpt-77.data-00000-of-00001.tempstate2109333119069222052; Disk quota exceeded
+	 [[node save_76/SaveV2 (defined at /u/alsritt/comparch/CS378FinalProject/Prefetcher.py:287) ]]
+Hint: If you want to see a list of allocated tensors when OOM happens, add report_tensor_allocations_upon_oom to RunOptions for current allocation info.
+
+
