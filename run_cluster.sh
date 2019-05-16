@@ -55,7 +55,7 @@ do
     chmod +x $SCRIPT_FILE
     
     # create condor file
-    /u/matthewp/research/scripts/condorize.sh false $CONDOR_DIR $BENCHMARK
+    /u/alsritt/comparch/CS378FinalProject/condorize.sh true $CONDOR_DIR $BENCHMARK
 
     # submit the condor file
     /lusr/opt/condor/bin/condor_submit $CONDOR_FILE

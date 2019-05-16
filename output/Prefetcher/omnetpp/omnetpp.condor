@@ -1,0 +1,18 @@
++Group="GRAD"
++Project="ARCHITECTURE"
++ProjectDescription="Micro-architectural simulation"
+universe=vanilla
+getenv=true
+Rank=Memory
+notification=Error
+output=CONDOR.omnetpp.OUT
+error=CONDOR.omnetpp.ERR
+notify_user=matthewp@cs.utexas.edu
+Requirements = !Nauro && !Uvanimor && !Rhavan && !Nauro
+Log = log.foo
+requirements=Cuda8 && TARGET.GPUSlot && CUDAGlobalMemoryMb >= 6144
+request_GPUs=1
++GPUJob=true && NumJobStarts == 0
+initialdir=/v/filer5b/v38q001/alsritt/comparch/CS378FinalProject/output/Prefetcher/omnetpp
+executable=/v/filer5b/v38q001/alsritt/comparch/CS378FinalProject/output/Prefetcher/omnetpp/omnetpp.sh
+queue

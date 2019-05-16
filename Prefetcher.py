@@ -42,9 +42,9 @@ time_steps=64			#how many previous addresses
 
 
 for line in trace_file:
-	ig1, PC, data_address, ig2, ig3, ig4 = line.split(" ")
-	PCs.append(float.fromhex(PC[-6:]))
-	addr.append(float.fromhex(data_address[-6:]))
+	ig1, data_address, PC, ig2, ig3, ig4 = line.split(" ")
+	PCs.append(float.fromhex(PC[-8:]))
+	addr.append(float.fromhex(data_address[-8:]))
 	if (len(deltas) == 0):
 		deltas.append(0)
 #		next_delta.append(0)
@@ -54,8 +54,8 @@ for line in trace_file:
 
 next_delta.append(0)
 
-print(deltas[:5])
-print(next_delta[:5])
+# print(deltas[:5])
+# print(next_delta[:5])
 
 
 #O-H Variables
@@ -86,6 +86,7 @@ for i in deltas:
 
 ##PC INPUT VOCAB##
 pc_frequency_dictonary = dict(Counter(PCs)) 
+# print(pc_frequency_dictonary)
 pcs_oh_encode = dict()
 for counter,value in enumerate(i for i in pc_frequency_dictonary.keys()):
 	pcs_oh_encode[value] = counter
@@ -108,12 +109,12 @@ for counter,value in enumerate(i for i in next_delta_frequency_dictonary.keys())
 
 ##next_delta POH encoding
 for i in next_delta:
-	temp = np.zeros(len(next_delta_oh_encode))
+	temp = np.zeros(len(next_delta_oh_encode)+1)
 	if i in next_delta_oh_encode:
 		temp[next_delta_oh_encode[i]] = 1
 		next_delta_one_hot.append(temp)
 	else:
-		temp[next_delta_oh_encode[len(next_delta_oh_encode)]] = 1
+		temp[len(next_delta_oh_encode)] = 1
 		next_delta_one_hot.append(temp)
 
 #debug assertion
@@ -163,7 +164,7 @@ num_units=128
 learning_rate=0.001
 #mnist is meant to be classified in 10 classes(0-9).
 #our values are however many outputs we are given.
-n_classes = len(next_delta_oh_encode)
+n_classes = len(next_delta_oh_encode)+1
 #size of batch
 #AKA how many lines we feed into the machine in any given iteration.
 #mostly just for efficency's sake, we could do it one line at a time but that's
@@ -283,17 +284,17 @@ with tf.Graph().as_default():
 			fd = {np_delta:batch_delta, np_pcs:batch_pc, y:batch_next_delta}
 			op_run = sess.run(opt, feed_dict=fd)
 
-			if iter%100 == 0:
+			if iter%1000 == 0:
 				saver = tf.train.Saver([pc_embeddings])
 
 				saver.save(sess, os.path.join(output_dir, 'models.ckpt'), iter)
 
 				acc=sess.run(accuracy,feed_dict=fd)
 				los = sess.run(loss,feed_dict=fd)
-				# print("For iter ",iter)
-				# print("Accuracy ",acc)
-				# print("Loss ",los)
-				# print("__________________")
+				print("For iter ",iter)
+				print("Accuracy ",acc)
+				print("Loss ",los)
+				print("__________________")
 
 
 			iter=iter+1
@@ -317,7 +318,7 @@ with tf.Graph().as_default():
 		config = projector.ProjectorConfig()
 		# One can add multiple embeddings.
 		embedding = config.embeddings.add()
-		embedding.tensor_name = delta_embeddings.name
+		embedding.tensor_name = pc_embeddings.name
 		# Saves a config file that TensorBoard will read during startup.
 		projector.visualize_embeddings(train_writer, config)
 
